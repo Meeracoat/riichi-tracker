@@ -23,13 +23,27 @@ def get_user(username):
         supabase
         .table("users")
         .select("id")
-        .eq("username", username)
+        .eq(
+            "username",
+            username
+        )
         .execute()
     )
 
     if result.data:
 
         return result.data[0]["id"]
+
+    return None
+
+
+def create_user(username):
+
+    user_id = get_user(username)
+
+    if user_id:
+
+        return user_id
 
     result = (
         supabase
@@ -46,84 +60,161 @@ def get_user(username):
 
 
 # -------------------------
-# Save match
+# Save Match
 # -------------------------
 
 def save_match(match, username):
 
-    user_id = get_user(username)
+    user_id = create_user(
+        username
+    )
 
     # -------------------------
-    # Check duplicate
+    # Duplicate check
     # -------------------------
 
     existing = (
-        supabase
-        .table("matches")
-        .select("id")
-        .eq("user_id", user_id)
-        .eq("replay", match["Replay"])
-        .execute()
-    )
 
+        supabase
+
+        .table("matches")
+
+        .select("id")
+
+        .eq(
+            "user_id",
+            user_id
+        )
+
+        .eq(
+            "replay",
+            match["Replay"]
+        )
+
+        .execute()
+
+    )
 
     if existing.data:
 
         return False
 
-
     # -------------------------
-    # Insert new match
+    # Match data
     # -------------------------
 
     data = {
 
-        "user_id": user_id,
 
-        "replay": match["Replay"],
+        "user_id":
 
-        "date": match["Date"],
+            user_id,
 
-        "mode": match["Mode"],
 
-        "placement": match["Placement"],
+        "replay":
 
-        "points": match["Points"],
+            match["Replay"],
 
-        "riichi": match["Riichi"],
 
-        "wins": match["Wins"],
+        "date":
 
-        "ron": match["Ron"],
+            match["Date"],
 
-        "tsumo": match["Tsumo"],
 
-        "deal_ins": match["Deal-ins"]
+        "mode":
+
+            match["Mode"],
+
+
+        "placement":
+
+            match["Placement"],
+
+
+        "points":
+
+            match["Points"],
+
+
+        "riichi":
+
+            match["Riichi"],
+
+
+        "wins":
+
+            match["Wins"],
+
+
+        "ron":
+
+            match["Ron"],
+
+
+        "tsumo":
+
+            match["Tsumo"],
+
+
+        "deal_ins":
+
+            match["Deal-ins"],
+
+
+        "players":
+
+            match.get(
+                "Players",
+                3
+            ),
+
+
+        "replay_data":
+
+            match.get(
+                "ReplayData"
+            )
 
     }
 
-
     supabase.table("matches").insert(data).execute()
-
 
     return True
 
 
 # -------------------------
-# Load matches
+# Load Player Matches
 # -------------------------
 
 def load_matches(username):
 
-    user_id = get_user(username)
+    user_id = get_user(
+        username
+    )
+
+    if user_id is None:
+
+        return []
 
     result = (
+
         supabase
+
         .table("matches")
+
         .select("*")
-        .eq("user_id", user_id)
-        .order("id")
+
+        .eq(
+            "user_id",
+            user_id
+        )
+
+        .order(
+            "id"
+        )
+
         .execute()
+
     )
 
     matches = []
@@ -132,25 +223,184 @@ def load_matches(username):
 
         matches.append({
 
-            "Replay": row["replay"],
+            "Replay":
 
-            "Date": row["date"],
+                row["replay"],
 
-            "Mode": row["mode"],
 
-            "Placement": row["placement"],
+            "Date":
 
-            "Points": row["points"],
+                row["date"],
 
-            "Riichi": row["riichi"],
 
-            "Wins": row["wins"],
+            "Mode":
 
-            "Ron": row["ron"],
+                row["mode"],
 
-            "Tsumo": row["tsumo"],
 
-            "Deal-ins": row["deal_ins"]
+            "Placement":
+
+                row["placement"],
+
+
+            "Points":
+
+                row["points"],
+
+
+            "Riichi":
+
+                row["riichi"],
+
+
+            "Wins":
+
+                row["wins"],
+
+
+            "Ron":
+
+                row["ron"],
+
+
+            "Tsumo":
+
+                row["tsumo"],
+
+
+            "Deal-ins":
+
+                row["deal_ins"],
+
+
+            "Players":
+
+                row.get(
+                    "players",
+                    3
+                ),
+
+
+            "ReplayData":
+
+                row.get(
+                    "replay_data"
+                )
+
+        })
+
+    return matches
+
+
+# -------------------------
+# Load All Matches
+# -------------------------
+
+def load_all_matches():
+
+    matches_result = (
+
+        supabase
+
+        .table("matches")
+
+        .select("*")
+
+        .execute()
+
+    )
+
+    users_result = (
+
+        supabase
+
+        .table("users")
+
+        .select("*")
+
+        .execute()
+
+    )
+
+    user_map = {
+
+        user["id"]:
+            user["username"]
+
+        for user in users_result.data
+
+    }
+
+    matches = []
+
+    for row in matches_result.data:
+
+        matches.append({
+
+            "Username":
+
+                user_map.get(
+
+                    row["user_id"],
+
+                    "Unknown"
+
+                ),
+
+
+            "Replay":
+
+                row["replay"],
+
+
+            "Placement":
+
+                row["placement"],
+
+
+            "Points":
+
+                row["points"],
+
+
+            "Riichi":
+
+                row["riichi"],
+
+
+            "Wins":
+
+                row["wins"],
+
+
+            "Ron":
+
+                row["ron"],
+
+
+            "Tsumo":
+
+                row["tsumo"],
+
+
+            "Deal-ins":
+
+                row["deal_ins"],
+
+
+            "Players":
+
+                row.get(
+                    "players",
+                    3
+                ),
+
+
+            "ReplayData":
+
+                row.get(
+                    "replay_data"
+                )
 
         })
 

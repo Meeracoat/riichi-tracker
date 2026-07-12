@@ -51,6 +51,26 @@ trends = st.Page(
     title="📈 Trends"
 )
 
+profile = st.Page(
+    "pages/profile.py",
+    title="👤 Profile"
+)
+
+leaderboard = st.Page(
+    "pages/leaderboard.py",
+    title="🏆 Leaderboard"
+)
+
+details = st.Page(
+    "pages/match_details.py",
+    title="🀄 Match Details"
+)
+
+replay_viewer = st.Page(
+    "pages/replay_viewer.py",
+    title="🎬 Replay Viewer"
+)
+
 
 # -------------------------
 # Navigation
@@ -64,7 +84,15 @@ pg = st.navigation(
 
             history,
 
-            trends
+            trends,
+
+            profile,
+
+            leaderboard,
+
+            details,
+            
+            replay_viewer
 
         ]
     }

@@ -7,10 +7,6 @@ from storage import load_matches
 st.title("📜 Match History")
 
 
-# -------------------------
-# Check username
-# -------------------------
-
 username = st.session_state.get(
     "username",
     ""
@@ -20,29 +16,19 @@ username = st.session_state.get(
 if username == "":
 
     st.info(
-        "👤 Enter your username in the sidebar first."
+        "Enter your username in the sidebar."
     )
 
     st.stop()
 
 
-# -------------------------
-# Load matches
-# -------------------------
+matches = load_matches(username)
 
-matches = load_matches(
-    username
-)
-
-
-# -------------------------
-# Empty state
-# -------------------------
 
 if not matches:
 
     st.info(
-        f"🀄 No matches recorded for {username} yet."
+        "No games imported yet."
     )
 
     st.stop()
@@ -51,55 +37,109 @@ if not matches:
 df = pd.DataFrame(matches)
 
 
-# -------------------------
-# Format
-# -------------------------
+st.subheader("Filters")
 
-df["Placement"] = df["Placement"].map(
-    {
+
+filtered = df.copy()
+
+
+c1, c2, c3 = st.columns(3)
+
+
+with c1:
+
+    placement_filter = st.multiselect(
+        "Placement",
+        sorted(filtered["Placement"].unique())
+    )
+
+
+with c2:
+
+    mode_filter = st.multiselect(
+        "Mode",
+        filtered["Mode"].unique()
+    )
+
+
+with c3:
+
+    result_filter = st.selectbox(
+        "Result",
+        [
+            "All",
+            "Wins",
+            "Losses"
+        ]
+    )
+
+
+if placement_filter:
+
+    filtered = filtered[
+        filtered["Placement"].isin(
+            placement_filter
+        )
+    ]
+
+
+if mode_filter:
+
+    filtered = filtered[
+        filtered["Mode"].isin(
+            mode_filter
+        )
+    ]
+
+
+if result_filter == "Wins":
+
+    filtered = filtered[
+        filtered["Placement"] == 1
+    ]
+
+
+elif result_filter == "Losses":
+
+    filtered = filtered[
+        filtered["Placement"] != 1
+    ]
+
+
+st.divider()
+
+st.subheader("Matches")
+
+
+for index, row in filtered.iterrows():
+
+    placement = {
         1: "🥇 1st",
         2: "🥈 2nd",
-        3: "🥉 3rd"
-    }
-)
+        3: "🥉 3rd",
+        4: "4th"
+    }.get(
+        row["Placement"],
+        row["Placement"]
+    )
 
+    with st.container(border=True):
 
-df["Points"] = df["Points"].apply(
-    lambda x: f"{x:,}"
-)
+        st.write(
+            f"**{row['Date']}**"
+        )
 
+        st.write(
+            f"{row['Mode']} | {placement} | {row['Points']:,} pts"
+        )
 
-# newest first
+        if st.button(
+            "View Match",
+            key=f"match_{index}"
+        ):
 
-df = df.iloc[::-1]
+            st.session_state.selected_match = row.to_dict()
 
-
-# -------------------------
-# Display
-# -------------------------
-
-st.subheader(
-    f"📜 {username}'s Matches"
-)
-
-
-st.dataframe(
-
-    df[
-        [
-            "Date",
-            "Mode",
-            "Placement",
-            "Points",
-            "Riichi",
-            "Wins",
-            "Ron",
-            "Tsumo",
-            "Deal-ins"
-        ]
-    ],
-
-    use_container_width=True,
-
-    hide_index=True
-)
+            st.switch_page(
+                "pages/match_details.py"
+            )

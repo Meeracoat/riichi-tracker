@@ -9,7 +9,7 @@ st.title("📈 Trends")
 
 
 # -------------------------
-# Check username
+# Load username
 # -------------------------
 
 username = st.session_state.get(
@@ -21,7 +21,7 @@ username = st.session_state.get(
 if username == "":
 
     st.info(
-        "👤 Enter your username in the sidebar first."
+        "Enter your username in the sidebar."
     )
 
     st.stop()
@@ -31,15 +31,13 @@ if username == "":
 # Load matches
 # -------------------------
 
-matches = load_matches(
-    username
-)
+matches = load_matches(username)
 
 
 if not matches:
 
     st.info(
-        f"🀄 No matches recorded for {username} yet."
+        "No games imported yet."
     )
 
     st.stop()
@@ -49,121 +47,99 @@ df = pd.DataFrame(matches)
 
 
 # -------------------------
-# Last 10 games
+# Compatibility
 # -------------------------
 
-df = df.tail(10).reset_index(
+if "Players" not in df.columns:
+
+    df["Players"] = 3
+
+
+# -------------------------
+# Format filter
+# -------------------------
+
+st.subheader(
+    "Game Format"
+)
+
+
+format_filter = st.selectbox(
+
+    "View",
+
+    [
+        "All Games",
+        "3 Player",
+        "4 Player"
+    ]
+
+)
+
+
+filtered = df.copy()
+
+
+if format_filter == "3 Player":
+
+    filtered = filtered[
+        filtered["Players"] == 3
+    ]
+
+
+elif format_filter == "4 Player":
+
+    filtered = filtered[
+        filtered["Players"] == 4
+    ]
+
+
+if filtered.empty:
+
+    st.info(
+        "No games found."
+    )
+
+    st.stop()
+
+
+# -------------------------
+# Add game number
+# -------------------------
+
+filtered = filtered.reset_index(
     drop=True
 )
 
 
-df["Game"] = range(
-    1,
-    len(df) + 1
-)
-
-
-st.subheader(
-    f"📈 Last 10 Matches - {username}"
+filtered["Game"] = (
+    filtered.index + 1
 )
 
 
 # -------------------------
-# Summary
+# Score trend
 # -------------------------
-
-c1, c2, c3, c4 = st.columns(4)
-
-
-c1.metric(
-    "🎮 Games",
-    len(df)
-)
-
-
-c2.metric(
-    "📍 Average Place",
-    f'{df["Placement"].mean():.2f}'
-)
-
-
-c3.metric(
-    "💴 Average Score",
-    f'{df["Points"].mean():,.0f}'
-)
-
-
-c4.metric(
-    "📊 Sum of Places",
-    int(df["Placement"].sum())
-)
-
 
 st.divider()
 
-
-# -------------------------
-# Placement count
-# -------------------------
-
 st.subheader(
-    "Placement Breakdown"
-)
-
-
-c1, c2, c3 = st.columns(3)
-
-
-c1.metric(
-    "🥇 1st",
-    len(df[df["Placement"] == 1])
-)
-
-
-c2.metric(
-    "🥈 2nd",
-    len(df[df["Placement"] == 2])
-)
-
-
-c3.metric(
-    "🥉 3rd",
-    len(df[df["Placement"] == 3])
-)
-
-
-st.divider()
-
-
-# -------------------------
-# Placement graph
-# -------------------------
-
-st.subheader(
-    "Placement Trend"
+    "⭐ Score Trend"
 )
 
 
 fig = px.line(
-    df,
+
+    filtered,
+
     x="Game",
-    y="Placement",
-    markers=True
-)
 
+    y="Points",
 
-fig.update_yaxes(
-    autorange="reversed",
-    tickvals=[
-        1,
-        2,
-        3
-    ],
-    ticktext=[
-        "🥇 1st",
-        "🥈 2nd",
-        "🥉 3rd"
-    ]
+    markers=True,
+
+    title="Score over games"
+
 )
 
 
@@ -174,51 +150,106 @@ st.plotly_chart(
 
 
 # -------------------------
-# Score graph
+# Placement trend
 # -------------------------
 
+st.divider()
+
 st.subheader(
-    "Score Trend"
+    "🏆 Placement Trend"
 )
 
 
-fig2 = px.line(
-    df,
+fig = px.line(
+
+    filtered,
+
     x="Game",
-    y="Points",
-    markers=True
+
+    y="Placement",
+
+    markers=True,
+
+    title="Placement over games"
+
+)
+
+
+fig.update_yaxes(
+    autorange="reversed"
 )
 
 
 st.plotly_chart(
-    fig2,
+
+    fig,
+
     use_container_width=True
+
 )
 
 
 # -------------------------
-# Raw data
+# Win rate
 # -------------------------
 
-with st.expander(
-    "Show last 10 games"
-):
+st.divider()
 
-    st.dataframe(
+st.subheader(
+    "👑 Win Rate"
+)
 
-        df[
-            [
-                "Game",
-                "Placement",
-                "Points",
-                "Riichi",
-                "Wins",
-                "Ron",
-                "Tsumo",
-                "Deal-ins"
-            ]
-        ],
 
-        hide_index=True
+wins = (
+    filtered["Placement"] == 1
+).sum()
 
-    )
+
+games = len(filtered)
+
+
+win_rate = (
+    wins / games * 100
+)
+
+
+st.metric(
+
+    "Win Rate",
+
+    f"{win_rate:.1f}%"
+
+)
+
+
+# -------------------------
+# Riichi trend
+# -------------------------
+
+st.divider()
+
+st.subheader(
+    "🀄 Riichi"
+)
+
+
+fig = px.bar(
+
+    filtered,
+
+    x="Game",
+
+    y="Riichi",
+
+    title="Riichi calls"
+
+)
+
+
+st.plotly_chart(
+
+    fig,
+
+    use_container_width=True
+
+)

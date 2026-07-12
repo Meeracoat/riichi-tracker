@@ -4,11 +4,17 @@ def parse_replay(game, player_name):
 
     player_id = players.index(player_name)
 
+    player_count = len(players)
+
     # -------------------------
     # Starting scores
     # -------------------------
 
-    scores = game["log"][0][1][:3].copy()
+    scores = game["log"][0][1][:player_count].copy()
+
+    # -------------------------
+    # Stats
+    # -------------------------
 
     riichi = 0
     wins = 0
@@ -17,74 +23,78 @@ def parse_replay(game, player_name):
     deal_ins = 0
 
     # -------------------------
-    # Process hands
+    # Process rounds
     # -------------------------
 
     for hand in game["log"]:
 
-        # -------------------------
-        # Riichi detection
-        # -------------------------
+        # Skip broken rounds
 
-        discard_index = 4 + player_id * 3 + 2
-
-        if discard_index < len(hand):
-
-            for tile in hand[discard_index]:
-
-                if isinstance(tile, str) and tile.startswith("r"):
-
-                    riichi += 1
+        if len(hand) < 2:
+            continue
 
         # -------------------------
-        # Result
+        # Count riichi
         # -------------------------
+
+        for section in hand:
+
+            if isinstance(section, list):
+
+                for tile in section:
+
+                    if isinstance(tile, str):
+
+                        if tile.startswith("r"):
+
+                            riichi += 1
 
         result = hand[-1]
 
         if not isinstance(result, list):
             continue
 
+        # -------------------------
+        # Apply score change
+        # -------------------------
+
+        if result[0] in ["和了", "流局"]:
+
+            delta = result[1]
+
+            for i in range(player_count):
+
+                scores[i] += delta[i]
+
+        # -------------------------
+        # Win / loss tracking
+        # -------------------------
+
         if result[0] != "和了":
+
             continue
-
-        delta = result[1][:3]
-
-        # update scores
-
-        for i in range(3):
-
-            scores[i] += delta[i]
-
-        # -------------------------
-        # Winner / Loser
-        # -------------------------
 
         info = result[2]
 
         winner = info[0]
-        loser = info[1]
 
-        # -------------------------
-        # I won
-        # -------------------------
+        loser = info[1]
 
         if winner == player_id:
 
             wins += 1
 
-            # same player = tsumo
+            # tsumo
+
             if winner == loser:
 
                 tsumo += 1
 
+            # ron
+
             else:
 
                 ron += 1
-
-        # -------------------------
-        # I dealt in
-        # -------------------------
 
         elif loser == player_id:
 
@@ -95,18 +105,20 @@ def parse_replay(game, player_name):
     # -------------------------
 
     ranking = sorted(
-        range(3),
+
+        range(player_count),
+
         key=lambda x: scores[x],
+
         reverse=True
+
     )
 
     placement = ranking.index(player_id) + 1
 
     # -------------------------
-    # Remove riichi sticks
+    # Return
     # -------------------------
-
-    display_score = scores[player_id] - (riichi * 1000)
 
     return {
 
@@ -114,7 +126,7 @@ def parse_replay(game, player_name):
 
         "Placement": placement,
 
-        "Points": display_score,
+        "Points": scores[player_id],
 
         "Riichi": riichi,
 
@@ -124,6 +136,8 @@ def parse_replay(game, player_name):
 
         "Tsumo": tsumo,
 
-        "Deal-ins": deal_ins
+        "Deal-ins": deal_ins,
+
+        "Players": player_count
 
     }
